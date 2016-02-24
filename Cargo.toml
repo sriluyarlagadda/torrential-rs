@@ -1,0 +1,7 @@
+[package]
+name = "torrential"
+version = "0.1.0"
+authors = ["srihari <sri_hariy@yhaoo.com>"]
+
+[dependencies]
+bencoding-rs = { git = "git@github.com:sriluyarlagadda/bencoding-rs.git" }
