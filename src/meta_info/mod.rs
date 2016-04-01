@@ -3,6 +3,7 @@ extern crate bencoding_rs;
 use self::bencoding_rs::{BencodingResult, decoder};
 use std::collections::HashMap;
 use std::default::Default;
+use std::clone::Clone;
 
 
 pub struct MetaInfo {
@@ -75,12 +76,30 @@ fn populate_meta_info(bencoded_result: BencodingResult) -> Result<MetaInfo, &'st
     };
 
     meta_info.piece_length = piece_length;    
+
+
+    let pieces:Vec<u8> = match retrieve_pieces_sha1(&info_map) {
+    	Ok(pieces) => pieces,
+    	Err(error) => return Err(error)
+    };
+    println!("{:?}", pieces.len());
+    meta_info.pieces_sha1 = pieces;
+
 	unimplemented!()
 }
 
 fn retrieve_pieces_sha1(info_map: &HashMap<String, BencodingResult>) -> Result<Vec<u8>, &'static str> {
 	let pieces_sha1:Vec<u8> = Vec::new();
-	unimplemented!()
+	let pieces_sha1_option:Option<&BencodingResult> = info_map.get("pieces");
+	let pieces_sha1_result:&BencodingResult =  try!(pieces_sha1_option.
+									ok_or("pieces sha1 does not exist"));
+
+
+	let pieces = match pieces_sha1_result {
+		&BencodingResult::ByteString(ref pieces_vec) => pieces_vec.clone(),
+		_ => return Err("key 'pieces' is not a Bencoded ByteString")
+	};
+	return Ok(pieces)
 }
 
 fn retrieve_piece_length(info_map: &HashMap<String, BencodingResult>) -> Result<u32, &'static str> {
