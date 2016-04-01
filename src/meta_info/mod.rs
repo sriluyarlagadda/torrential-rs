@@ -82,7 +82,6 @@ fn populate_meta_info(bencoded_result: BencodingResult) -> Result<MetaInfo, &'st
     	Ok(pieces) => pieces,
     	Err(error) => return Err(error)
     };
-    println!("{:?}", pieces.len());
     meta_info.pieces_sha1 = pieces;
 
 	unimplemented!()
