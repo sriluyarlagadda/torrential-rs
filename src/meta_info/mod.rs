@@ -47,32 +47,67 @@ pub fn to_meta_info(input: Vec<u8>) -> Result<MetaInfo, &'static str> {
 fn populate_meta_info(bencoded_result: BencodingResult) -> Result<MetaInfo, &'static str> {
 	let mut meta_info:MetaInfo = Default::default();
 	let mut bencoded_map:HashMap<String, BencodingResult>;
+
 	bencoded_map = match bencoded_result {
 		BencodingResult::Dict(bencoded_map) => bencoded_map,
 		_ => return Err("the torrent is not valid")
 	};
 
-	retrieve_url(&mut meta_info, &bencoded_map);
-	retrieve_info_raw(&mut meta_info, &bencoded_map);
+	let tracker_url = match retrieve_url(&bencoded_map) {
+		Ok(url) => url,
+		Err(error) => panic!("{}", error),
+	};
+	meta_info.tracker_url = tracker_url;
 
-	return Err("error")
+	let info_data = try!(bencoded_map.get("info").ok_or("key 'info' does not exist"));
+
+	let info_map:HashMap<String, BencodingResult>;
+    {
+        info_map =  match info_data {
+            &BencodingResult::Dict(ref info_map) => info_map.clone(),
+            _ => return Err("key 'info' is not a dictionary")
+        };
+    }
+
+    let piece_length:u32 = match retrieve_piece_length(&info_map) {
+        Ok(piece_length) => piece_length,
+        Err(error) => return Err(error)
+    };
+
+    meta_info.piece_length = piece_length;    
+	unimplemented!()
 }
 
-fn retrieve_info_raw(meta_info:&mut MetaInfo, bencoded_map: &HashMap<String, BencodingResult>) {
-	 	let url_option: Option<&BencodingResult> = bencoded_map.get("announce");
-
+fn retrieve_pieces_sha1(info_map: &HashMap<String, BencodingResult>) -> Result<Vec<u8>, &'static str> {
+	let pieces_sha1:Vec<u8> = Vec::new();
+	unimplemented!()
 }
 
-fn retrieve_url(meta_info:&mut MetaInfo, bencoded_map: &HashMap<String, BencodingResult>) {
-	let url_option: Option<&BencodingResult> = bencoded_map.get("announce");
-	let url_result = match url_option {
-		Some(&BencodingResult::ByteString(ref url_vect)) => String::from_utf8(url_vect.clone()),
-		_ => panic!("Not a valid announce url")
+fn retrieve_piece_length(info_map: &HashMap<String, BencodingResult>) -> Result<u32, &'static str> {
+	let piece_length: u32;
+	let piece_length_option: Option<&BencodingResult> = info_map.get("piece length");
+	let piece_length_result:&BencodingResult =  try!(piece_length_option.
+									ok_or("piece length does not exist"));
+
+	let piece_length = match piece_length_result {
+		&BencodingResult::Int(length) => length,
+		_ => return Err("key 'piece length' is not a Bencoded Integer")
 	};
 
-	if let Ok(url) = url_result {
-		meta_info.tracker_url = url;
-	} else {
-		panic!("url is not valid");
-	}
+	return Ok(piece_length as u32)
+}
+
+
+fn retrieve_url(bencoded_map: &HashMap<String, BencodingResult>) -> Result<String, String> {
+	let url_option: Option<&BencodingResult> = bencoded_map.get("announce");
+
+	let url_result:&BencodingResult = 
+				try!(url_option.ok_or(String::from("Tracker url does not exist")));
+
+	let url = match url_result {
+	    &BencodingResult::ByteString(ref url_vect) => String::from_utf8(url_vect.clone()),
+	    _ => return Err(String::from("Invali url")),
+	};
+
+	return url.map_err(|err| err.to_string())
 }
