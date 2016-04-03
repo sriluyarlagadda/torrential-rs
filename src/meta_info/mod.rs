@@ -87,6 +87,11 @@ fn populate_meta_info(bencoded_result: BencodingResult) -> Result<MetaInfo, &'st
     };
     meta_info.pieces_sha1 = pieces;
 
+    let file_info = match retrieve_file_info(&info_map) {
+    	Ok(file_info) => file_info,
+    	Err(err) => return Err(err)
+    };
+    
     for (key, _) in info_map {
     	println!("{:?}", key);
     }
@@ -110,6 +115,18 @@ fn retrieve_file_info(info_map: &HashMap<String, BencodingResult>) -> Result<Fil
 		Ok(name) => name,
 		Err(err) => return Err("cannot convert to string from utf 8 bytes")
 	};
+
+	//if the map has lenth then it is a single file
+	if info_map.contains_key("length") {
+		let length_result:&BencodingResult = info_map.get("length").unwrap();
+		let length = match length_result {
+			&BencodingResult::Int(length) => length,
+			_ => return Err("key 'length' is not an integer")
+		};
+
+		return Ok(FileInfo::SingleFileInfo{ length: length as u32, name: name })
+	}
+	
 
 	unimplemented!()
 }
