@@ -4,6 +4,8 @@ use self::bencoding_rs::{BencodingResult, decoder};
 use std::collections::HashMap;
 use std::default::Default;
 use std::clone::Clone;
+use std::error::Error;
+use std::string::FromUtf8Error;
 
 
 pub struct MetaInfo {
@@ -32,7 +34,8 @@ enum FileInfo {
 #[derive(Default)]
 struct File {
 	path: Vec<String>,
-	name:String
+	name:String,
+	length:u32
 }
 
 pub fn to_meta_info(input: Vec<u8>) -> Result<MetaInfo, &'static str> {
@@ -83,6 +86,30 @@ fn populate_meta_info(bencoded_result: BencodingResult) -> Result<MetaInfo, &'st
     	Err(error) => return Err(error)
     };
     meta_info.pieces_sha1 = pieces;
+
+    for (key, _) in info_map {
+    	println!("{:?}", key);
+    }
+
+	unimplemented!()
+}
+
+fn retrieve_file_info(info_map: &HashMap<String, BencodingResult>) -> Result<FileInfo, &'static str> {
+
+	if !info_map.contains_key("name") {
+		return Err("key name does not exist in the 'info' dictionary")
+	}
+
+	let name:&BencodingResult = info_map.get("name").unwrap();
+	let name_as_vec:Vec<u8> = match name {
+	    &BencodingResult::ByteString(ref name) => name.clone(),
+	    _ => return Err("key 'name' is not a Bencoded ByteString"),
+	};
+
+	let name:String = match String::from_utf8(name_as_vec) {
+		Ok(name) => name,
+		Err(err) => return Err("cannot convert to string from utf 8 bytes")
+	};
 
 	unimplemented!()
 }
